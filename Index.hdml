@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Jarvis</title>
+  <style>
+    body {
+      background: black;
+      color: cyan;
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 100px;
+    }
+    #circle {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 4px solid cyan;
+      margin: 0 auto;
+      box-shadow: 0 0 30px cyan;
+    }
+  </style>
+</head>
+<body>
+  <div id="circle"></div>
+  <h1>Jarvis</h1>
+  <p id="status">Say "Hey Jarvis" to begin</p>
+
+  <script>
+    const recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = function(event) {
+      const text = event.results[event.results.length - 1][0].transcript.toLowerCase();
+      document.getElementById('status').innerText = "Heard: " + text;
+
+      if (text.includes("hey jarvis")) {
+        document.getElementById('status').innerText = "Yes? I'm listening...";
+        document.getElementById('circle').style.boxShadow = "0 0 60px cyan";
+      }
+    };
+
+    recognition.onend = function() {
+      recognition.start();
+    };
+
+    recognition.start();
+  </script>
+</body>
+</html>
