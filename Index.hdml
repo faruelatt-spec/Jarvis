@@ -1,51 +1,121 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Jarvis</title>
-  <style>
-    body {
-      background: black;
-      color: cyan;
-      font-family: sans-serif;
-      text-align: center;
-      padding-top: 100px;
-    }
-    #circle {
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      border: 4px solid cyan;
-      margin: 0 auto;
-      box-shadow: 0 0 30px cyan;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jarvis</title>
+<style>
+body{margin:0;height:100vh;background:#000;color:#0ff;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#core{width:160px;height:160px;border-radius:50%;border:4px solid #0ff;box-shadow:0 0 30px #0ff,inset 0 0 30px #0ff;animation:pulse 2s infinite}
+#core.awake{background:#00ffff44;box-shadow:0 0 60px #0ff,inset 0 0 50px #0ff}
+@keyframes pulse{50%{transform:scale(1.08)}}
+#st{margin:30px 20px 10px;font-size:18px}
+#heard{color:#7aa;font-size:14px;min-height:20px;margin:0 20px}
+button{margin-top:25px;padding:14px 28px;font-size:18px;background:#000;color:#0ff;border:2px solid #0ff;border-radius:30px}
+</style>
 </head>
 <body>
-  <div id="circle"></div>
-  <h1>Jarvis</h1>
-  <p id="status">Say "Hey Jarvis" to begin</p>
+<div id="core"></div>
+<div id="st">Tap Start, then say "Hey Jarvis"</div>
+<div id="heard"></div>
+<button id="btn">Start</button>
+<script>
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+var core = document.getElementById('core');
+var st = document.getElementById('st');
+var heard = document.getElementById('heard');
+var btn = document.getElementById('btn');
+var rec = null, running = false, awake = false;
 
-  <script>
-    const recognition = new webkitSpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
+function speak(t){
+  speechSynthesis.cancel();
+  speechSynthesis.speak(new SpeechSynthesisUtterance(t));
+}
 
-    recognition.onresult = function(event) {
-      const text = event.results[event.results.length - 1][0].transcript.toLowerCase();
-      document.getElementById('status').innerText = "Heard: " + text;
+function handle(cmd){
+  var c = cmd.toLowerCase();
+  var reply;
+  core.className = '';
+  if(c.indexOf('time') > -1){
+    reply = 'It is ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  } else if(c.indexOf('date') > -1 || c.indexOf('day') > -1){
+    reply = 'Today is ' + new Date().toDateString();
+  } else if(c.indexOf('youtube') > -1){
+    reply = 'Opening YouTube';
+    setTimeout(function(){ window.open('https://www.youtube.com', '_blank'); }, 1500);
+  } else if(c.indexOf('whatsapp') > -1){
+    reply = 'Opening WhatsApp';
+    setTimeout(function(){ window.open('https://web.whatsapp.com', '_blank'); }, 1500);
+  } else if(c.indexOf('google') > -1){
+    reply = 'Opening Google';
+    setTimeout(function(){ window.open('https://www.google.com', '_blank'); }, 1500);
+  } else {
+    reply = 'You said ' + cmd;
+  }
+  st.textContent = reply;
+  speak(reply);
+}
 
-      if (text.includes("hey jarvis")) {
-        document.getElementById('status').innerText = "Yes? I'm listening...";
-        document.getElementById('circle').style.boxShadow = "0 0 60px cyan";
+function start(){
+  if(!SR){
+    st.textContent = 'Speech recognition not supported. Please use Chrome.';
+    return;
+  }
+  rec = new SR();
+  rec.continuous = true;
+  rec.interimResults = false;
+  rec.lang = 'en-US';
+
+  rec.onresult = function(e){
+    var text = e.results[e.results.length - 1][0].transcript.trim();
+    heard.textContent = text;
+    var low = text.toLowerCase();
+    var i = low.indexOf('jarvis');
+    if(i > -1){
+      var cmd = text.slice(i + 6).replace(/^[\s,.]+/, '');
+      if(cmd){
+        handle(cmd);
+      } else {
+        awake = true;
+        core.className = 'awake';
+        st.textContent = 'Yes? Listening...';
+        speak('Yes?');
       }
-    };
+    } else if(awake){
+      awake = false;
+      handle(text);
+    }
+  };
 
-    recognition.onend = function() {
-      recognition.start();
-    };
+  rec.onend = function(){
+    if(running){ try{ rec.start(); }catch(err){} }
+  };
 
-    recognition.start();
-  </script>
+  rec.onerror = function(e){
+    if(e.error === 'not-allowed'){
+      running = false;
+      btn.textContent = 'Start';
+      st.textContent = 'Microphone blocked. Allow it in browser settings.';
+    }
+  };
+
+  running = true;
+  rec.start();
+  st.textContent = 'Listening for "Hey Jarvis"';
+  btn.textContent = 'Stop';
+}
+
+btn.onclick = function(){
+  if(running){
+    running = false;
+    rec.stop();
+    core.className = '';
+    st.textContent = 'Stopped. Tap Start to listen again.';
+    btn.textContent = 'Start';
+  } else {
+    start();
+  }
+};
+</script>
 </body>
 </html>
